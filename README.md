@@ -1,5 +1,5 @@
 # Mutations-EnsembleEffects
-Includes data on protein ensemble properties (coupling free energies) that exhibit an exponential distance dependence on introducing mutations
+Includes data on protein ensemble properties (coupling free energies from the WSME model) that exhibit an exponential distance dependence on introducing mutations
 
 Execute 'Coupling_AlaMut.m' - line 3 can be modified to choose from among the three proteins studied (CypA, CheY and Pdz). 
 
