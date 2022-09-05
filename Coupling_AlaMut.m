@@ -1,7 +1,7 @@
 clear all; clc; close all;
 %% Input
-prot='CypA';
-residue=115; % Please give the residue number as per the PDB file
+prot='CheY';
+residue=5; % Please give the residue number as per the PDB file
 
 %% Loading data files of the protein
 eval(['load Coupling_310K_',prot,'.mat']);
@@ -107,6 +107,25 @@ N1=[0 N1 0];
 edges2 = edges2(2:end) - (edges2(2)-edges2(1))/2;
 edges2=[edges2(1)-0.05 edges2 edges2(end)+0.05];
 N2=[0 N2 0];
+%% Creating Coupling Matrices for generating images
+if prot(1:3)=='Pdz'
+    startres=306;
+elseif prot=='CheY'
+    startres=2;
+else
+    startres=1;
+end
+endres=startres+BlockDet(end,1)-1;
+
+DGPwt=NaN(endres);
+DGPmut=NaN(endres);
+DCM=NaN(endres);
+
+DGPwt(startres:endres, startres:endres)=chiPwt(BlockDet(:,2),BlockDet(:,2))';
+DGPmut(startres:endres, startres:endres)=chiP_mut(BlockDet(:,2),BlockDet(:,2))';
+DCM(startres:endres, startres:endres)=chiP_mut(BlockDet(:,2),BlockDet(:,2))'-chiPwt(BlockDet(:,2),BlockDet(:,2))';
+
+
 
 %% Generating images
     
@@ -116,6 +135,7 @@ N2=[0 N2 0];
  plot(1:nres,fesmat(:,1), 'k', 'LineWidth', 2); axis([0 inf 0 inf]);
  hold on
  plot(1:nres, fesmat(:,targetres+1),'r','LineWidth',2);
+ legend('WT',char(mutlist(targetres)))
  set(gcf, 'Position', [1 1 1000 500]);
  xlabel('# of Structured Blocks');
  ylabel('FE (kJ/mol)')
@@ -141,11 +161,12 @@ print('FE Profile', '-dpng', '-r300')
  cmapmin=min(min(min(chiPwt)),min(min(chiP_mut)));
  set(gcf,'Position',[1,3,1500,750])
  subplot(1,3,1)
- pcolor(chiPwt(BlockDet(:,2),BlockDet(:,2))'); shading interp; colormap jet
+ pcolor(DGPwt); shading interp; colormap jet
+ xlim([startres endres]); ylim([startres endres]);
  ax=gca;
  ax.LineWidth=1;
- ax.XTick=20:20:BlockDet(end,1);
- ax.YTick=20:20:BlockDet(end,1);
+ ax.XTick=startres+20-1:20:endres;
+ ax.YTick=startres+20-1:20:endres;
  ax.FontWeight='Bold';
  ax.Position=[0.1 0.35 0.21 0.4];
  ax.Box='on';
@@ -156,11 +177,12 @@ print('FE Profile', '-dpng', '-r300')
  title('delG_+ WT')
     
  subplot(1,3,2)
- pcolor(chiP_mut(BlockDet(:,2),BlockDet(:,2))'); shading interp; colormap jet
+ pcolor(DGPmut); shading interp; colormap jet
+ xlim([startres endres]); ylim([startres endres]);
  ax=gca;
  ax.LineWidth=1;
- ax.XTick=20:20:BlockDet(end,1);
- ax.YTick=20:20:BlockDet(end,1);
+ ax.XTick=startres+20-1:20:endres;
+ ax.YTick=startres+20-1:20:endres;
  ax.FontWeight='Bold';
  ax.Position=[0.4 0.35 0.21 0.4];
  ax.Box='on';
@@ -168,22 +190,22 @@ print('FE Profile', '-dpng', '-r300')
  cb1=colorbar;
  cb1.Position=[0.62 0.3510 0.010 0.3990];
 caxis([cmapmin cmapmax]);
- title('delG_+ mutant')
+ title(strcat('delG_+ :',char(mutlist(targetres))))
     
 subplot(1,3,3)
-DCM=chiP_mut(BlockDet(:,2),BlockDet(:,2))'-chiPwt(BlockDet(:,2),BlockDet(:,2))';
 pcolor(DCM); shading interp; colormap jet
+xlim([startres endres]); ylim([startres endres]);
 ax=gca;
 ax.LineWidth=1;
-ax.XTick=20:20:BlockDet(end,1);
-ax.YTick=20:20:BlockDet(end,1);
+ ax.XTick=startres+20-1:20:endres;
+ ax.YTick=startres+20-1:20:endres;
 ax.FontWeight='Bold';
 ax.Position=[0.7 0.35 0.21 0.4];
 ax.Box='on';
 xlabel('Sequence Index'); ylabel('Sequence Index');
 cb=colorbar;
 cb.Position=[0.92 0.3510 0.010 0.3990];
-title('Differential Coupling Matrix')
+title(strcat('Differential Coupling Matrix: ',char(mutlist(targetres))))
 hold off
 print('Coupling Matrices', '-dpng', '-r300')
 
@@ -196,7 +218,7 @@ xlabel('Distance from the Mutated Residue')
 ylabel('<|DDG_+|>')
 txt= {['d_c = ' num2str(round(param(3)*100)/100) ' ± ' num2str(round(param(4)*100)/100) ' Angstrom']};
 text(25,max(abs(y2))-0.5,txt)
-title('Exponential Decay of DDG_+')
+title(strcat('Exponential Decay of DDG_+ :',char(mutlist(targetres))))
 ax.FontWeight='Bold';
 hold off
 print('Exponential decay of DDGp', '-dpng', '-r300')
@@ -206,7 +228,7 @@ ax=gca;
 plot(edges1,N1,'b-','LineWidth',1.5)
 xlabel('Difference in FE (kJ/mol)')
 ylabel('No of Microstates')
-title('Free Energy Redistribution of All Microstates')
+title(strcat('Free Energy Redistribution of All Microstates:',char(mutlist(targetres))))
 ax.FontWeight='Bold';
 print('FE Redistribution ', '-dpng', '-r300')
 
@@ -215,7 +237,7 @@ ax=gca;
 plot(edges2,N2,'r-','LineWidth',1.5)
 xlabel('Difference in FE (kJ/mol)')
 ylabel('No of Microstates')
-title('Free Energy Redistribution of Folded Well Microstates')
+title(strcat('Free Energy Redistribution of Folded Well Microstates:',char(mutlist(targetres))))
 ax.FontWeight='Bold';
 print('Folded Well FE Distribution ', '-dpng', '-r300')
 
